@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CLD Flix | Filmes e Séries</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #e50914; /* Vermelho estilo streaming */
+            --bg: #141414;
+            --surface: #2f2f2f;
+            --text: #ffffff;
+            --text-meta: #aaaaaa;
+            --radius-md: 8px;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+        
+        /* Navbar */
+        .navbar { position: sticky; top: 0; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(10px); z-index: 100; padding: 15px 20px; border-bottom: 1px solid #333; }
+        .nav-top { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .logo { font-weight: 800; font-size: 1.8rem; color: var(--text); text-decoration: none; letter-spacing: -1px; }
+        .logo span { color: var(--primary); }
+        
+        .btn-saved { background: transparent; border: 1px solid var(--text); color: var(--text); padding: 8px 16px; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-saved.active { background: var(--text); color: var(--bg); }
+
+        /* Pesquisa e Filtros */
+        .search-bar { margin: 20px auto; max-width: 800px; position: relative; padding: 0 20px; }
+        .search-bar input { width: 100%; padding: 14px 20px 14px 50px; border-radius: 100px; border: none; background: var(--surface); color: var(--text); font-family: inherit; font-size: 1rem; outline: none; }
+        .search-bar i { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); color: var(--text-meta); }
+
+        .categories { display: flex; gap: 15px; padding: 10px 20px; overflow-x: auto; max-width: 1200px; margin: 0 auto; scrollbar-width: none; }
+        .categories::-webkit-scrollbar { display: none; }
+        .cat-item { padding: 8px 20px; background: var(--surface); border-radius: 100px; font-weight: 600; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .cat-item.active { background: var(--primary); color: white; }
+
+        /* Grid de Filmes */
+        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+        @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
+        
+        .movie-card { background: var(--surface); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; aspect-ratio: 2/3; }
+        .movie-card:hover { transform: scale(1.05); }
+        .movie-poster { width: 100%; height: 100%; object-fit: cover; }
+        .movie-rating { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #facc15; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+        /* Modal de Detalhes */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--bg); max-width: 600px; width: 100%; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; }
+        
+        .modal-backdrop { width: 100%; height: 300px; object-fit: cover; opacity: 0.5; }
+        .modal-info { padding: 25px; position: relative; margin-top: -80px; }
+        .modal-title { font-size: 2rem; font-weight: 800; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .modal-meta { color: var(--text-meta); font-size: 0.9rem; margin-bottom: 20px; display: flex; gap: 15px; }
+        .modal-overview { font-size: 1rem; line-height: 1.6; color: #ddd; margin-bottom: 25px; }
+        
+        .btn-action { width: 100%; padding: 15px; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; font-family: inherit; transition: 0.2s; }
+        .btn-add { background: var(--text); color: var(--bg); }
+        .btn-add.saved { background: var(--primary); color: white; }
+
+        .loader { text-align: center; padding: 40px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-top">
+        <a href="#" class="logo">CLD<span>Flix</span></a>
+        <button id="bookmark-btn" class="btn-saved" onclick="toggleSavedView()">Minha Lista</button>
+    </div>
+</nav>
+
+<div class="search-bar">
+    <i class="fas fa-search"></i>
+    <input type="text" id="search-input" placeholder="Pesquisar filmes ou séries..." onkeyup="if(event.key==='Enter') searchContent()">
+</div>
+
+<div class="categories">
+    <div class="cat-item active" onclick="setCategory('trending/all/week', this)">Em Alta</div>
+    <div class="cat-item" onclick="setCategory('discover/movie', this)">Filmes</div>
+    <div class="cat-item" onclick="setCategory('discover/tv', this)">Séries</div>
+</div>
+
+<main class="feed" id="feed"></main>
+<div id="loader" class="loader"><i class="fas fa-spinner fa-spin"></i></div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal(event, true)"><i class="fas fa-times"></i></button>
+        <img id="m-backdrop" class="modal-backdrop" src="" alt="">
+        <div class="modal-info">
+            <h2 id="m-title" class="modal-title">Título</h2>
+            <div class="modal-meta">
+                <span id="m-date"><i class="far fa-calendar"></i> 2024</span>
+                <span id="m-rate"><i class="fas fa-star" style="color:#facc15"></i> 8.5</span>
+            </div>
+            <p id="m-desc" class="modal-overview">Sinopse...</p>
+            <button id="m-save-btn" class="btn-action btn-add" onclick="toggleSave()"><i class="fas fa-plus"></i> Adicionar à Minha Lista</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_KEY = 'a2144f612724d5f4a8a14c4a9ac78f7a'; 
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+
+let currentEndpoint = 'trending/all/week';
+let allItems = [];
+let isSavedView = false;
+let selectedItem = null;
+
+async function fetchContent(query = '') {
+    if(isSavedView) return;
+    document.getElementById('loader').style.display = 'block';
+    const feed = document.getElementById('feed');
+    feed.innerHTML = '';
+
+    try {
+        let url = query 
+            ? `${BASE_URL}/search/multi?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
+            : `${BASE_URL}/${currentEndpoint}?api_key=${API_KEY}&language=pt-BR`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if(data.results) {
+            allItems = data.results.filter(item => item.poster_path); // Apenas com imagem
+            renderGrid(allItems);
+        }
+    } catch (e) {
+        feed.innerHTML = '<p style="color:white; grid-column:1/-1; text-align:center;">Erro ao carregar dados. Verifique a sua conexão.</p>';
+    }
+    document.getElementById('loader').style.display = 'none';
+}
+
+function renderGrid(items) {
+    const feed = document.getElementById('feed');
+    feed.innerHTML = '';
+    
+    if(items.length === 0) {
+        feed.innerHTML = '<p style="color:white; grid-column:1/-1; text-align:center;">Nenhum título encontrado.</p>';
+        return;
+    }
+
+    items.forEach(item => {
+        const title = item.title || item.name;
+        const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
+        
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.onclick = () => openModal(item);
+        card.innerHTML = `
+            <img class="movie-poster" src="${IMG_URL + item.poster_path}" loading="lazy" alt="${title}">
+            <div class="movie-rating"><i class="fas fa-star"></i> ${rating}</div>
+        `;
+        feed.appendChild(card);
+    });
+}
+
+function setCategory(endpoint, btn) {
+    document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+    btn.classList.add('active');
+    currentEndpoint = endpoint;
+    isSavedView = false;
+    document.getElementById('bookmark-btn').classList.remove('active');
+    document.getElementById('search-input').value = '';
+    fetchContent();
+}
+
+function searchContent() {
+    const query = document.getElementById('search-input').value;
+    if(query.trim()) fetchContent(query);
+}
+
+// Lógica da Minha Lista (Guardar no telemóvel)
+function toggleSavedView() {
+    isSavedView = !isSavedView;
+    const btn = document.getElementById('bookmark-btn');
+    btn.classList.toggle('active', isSavedView);
+    
+    if(isSavedView) {
+        document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+        const saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
+        document.getElementById('loader').style.display = 'none';
+        renderGrid(saved);
+    } else {
+        document.querySelector('.cat-item').classList.add('active'); // Volta ao "Em Alta"
+        fetchContent();
+    }
+}
+
+// Funções do Modal
+function openModal(item) {
+    selectedItem = item;
+    const title = item.title || item.name;
+    const date = item.release_date || item.first_air_date || 'N/D';
+    const backdrop = item.backdrop_path ? (IMG_URL + item.backdrop_path) : (IMG_URL + item.poster_path);
+    
+    document.getElementById('m-title').innerText = title;
+    document.getElementById('m-backdrop').src = backdrop;
+    document.getElementById('m-date').innerHTML = `<i class="far fa-calendar"></i> ${date.split('-')[0]}`;
+    document.getElementById('m-rate').innerHTML = `<i class="fas fa-star" style="color:#facc15"></i> ${item.vote_average.toFixed(1)}`;
+    document.getElementById('m-desc').innerText = item.overview || "Nenhuma sinopse disponível em português para este título.";
+    
+    updateModalBtn();
+    document.getElementById('modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Bloqueia scroll do fundo
+}
+
+function closeModal(event, force = false) {
+    if (force || event.target.id === 'modal') {
+        document.getElementById('modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function toggleSave() {
+    let saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
+    const idx = saved.findIndex(x => x.id === selectedItem.id);
+    
+    if(idx > -1) saved.splice(idx, 1);
+    else saved.push(selectedItem);
+    
+    localStorage.setItem('cld_flix_saved', JSON.stringify(saved));
+    updateModalBtn();
+    if(isSavedView) renderGrid(saved); // Atualiza a lista por trás se estiver na aba Minha Lista
+}
+
+function updateModalBtn() {
+    const saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
+    const isSaved = saved.some(x => x.id === selectedItem.id);
+    const btn = document.getElementById('m-save-btn');
+    
+    if(isSaved) {
+        btn.className = 'btn-action btn-add saved';
+        btn.innerHTML = '<i class="fas fa-check"></i> Na Minha Lista';
+    } else {
+        btn.className = 'btn-action btn-add';
+        btn.innerHTML = '<i class="fas fa-plus"></i> Adicionar à Minha Lista';
+    }
+}
+
+// Iniciar
+window.onload = fetchContent;
+</script>
+</body>
+</html>
