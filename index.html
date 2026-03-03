@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #e50914; /* Vermelho estilo streaming */
+            --primary: #e50914; 
             --bg: #141414;
             --surface: #2f2f2f;
             --text: #ffffff;
@@ -47,20 +47,30 @@
         .movie-poster { width: 100%; height: 100%; object-fit: cover; }
         .movie-rating { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #facc15; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 4px; }
 
-        /* Modal de Detalhes */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: var(--bg); max-width: 600px; width: 100%; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        /* Modal de Detalhes Melhorado */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
+        .modal-content { background: var(--bg); max-width: 800px; width: 100%; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 95vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; }
         
-        .modal-backdrop { width: 100%; height: 300px; object-fit: cover; opacity: 0.5; }
-        .modal-info { padding: 25px; position: relative; margin-top: -80px; }
-        .modal-title { font-size: 2rem; font-weight: 800; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        .modal-meta { color: var(--text-meta); font-size: 0.9rem; margin-bottom: 20px; display: flex; gap: 15px; }
-        .modal-overview { font-size: 1rem; line-height: 1.6; color: #ddd; margin-bottom: 25px; }
+        .modal-backdrop { width: 100%; height: 350px; object-fit: cover; opacity: 0.4; }
+        .modal-info { padding: 25px; position: relative; margin-top: -100px; }
+        .modal-title { font-size: 2.2rem; font-weight: 800; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .modal-meta { color: var(--text-meta); font-size: 0.95rem; margin-bottom: 20px; display: flex; gap: 15px; }
+        .modal-overview { font-size: 1.05rem; line-height: 1.6; color: #ddd; margin-bottom: 25px; }
         
-        .btn-action { width: 100%; padding: 15px; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; font-family: inherit; transition: 0.2s; }
+        .btn-action { width: 100%; padding: 15px; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; font-family: inherit; transition: 0.2s; margin-bottom: 30px;}
         .btn-add { background: var(--text); color: var(--bg); }
         .btn-add.saved { background: var(--primary); color: white; }
+
+        /* Trailer e Relacionados */
+        .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .trailer-container { position: relative; width: 100%; padding-bottom: 56.25%; margin-bottom: 30px; background: #000; border-radius: var(--radius-md); overflow: hidden; }
+        .trailer-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        
+        .related-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; }
+        .related-list::-webkit-scrollbar { display: none; }
+        .related-card { min-width: 130px; border-radius: var(--radius-md); overflow: hidden; cursor: pointer; }
+        .related-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--radius-md); }
 
         .loader { text-align: center; padding: 40px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; }
     </style>
@@ -76,7 +86,7 @@
 
 <div class="search-bar">
     <i class="fas fa-search"></i>
-    <input type="text" id="search-input" placeholder="Pesquisar filmes ou séries..." onkeyup="if(event.key==='Enter') searchContent()">
+    <input type="text" id="search-input" placeholder="Pesquisar filmes ou séries..." onkeyup="if(event.key==='Enter') startSearch()">
 </div>
 
 <div class="categories">
@@ -100,6 +110,16 @@
             </div>
             <p id="m-desc" class="modal-overview">Sinopse...</p>
             <button id="m-save-btn" class="btn-action btn-add" onclick="toggleSave()"><i class="fas fa-plus"></i> Adicionar à Minha Lista</button>
+            
+            <div id="trailer-section" style="display: none;">
+                <h3 class="section-title">Trailer Oficial</h3>
+                <div class="trailer-container" id="m-trailer"></div>
+            </div>
+
+            <div id="related-section" style="display: none;">
+                <h3 class="section-title">Títulos Relacionados</h3>
+                <div class="related-list" id="m-related"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -113,36 +133,43 @@ let currentEndpoint = 'trending/all/week';
 let allItems = [];
 let isSavedView = false;
 let selectedItem = null;
+let currentPage = 1;
+let isFetching = false;
+let currentQuery = '';
 
-async function fetchContent(query = '') {
-    if(isSavedView) return;
+// Buscar Conteúdo Geral (com Scroll Infinito)
+async function fetchContent() {
+    if(isSavedView || isFetching) return;
+    isFetching = true;
     document.getElementById('loader').style.display = 'block';
-    const feed = document.getElementById('feed');
-    feed.innerHTML = '';
 
     try {
-        let url = query 
-            ? `${BASE_URL}/search/multi?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
-            : `${BASE_URL}/${currentEndpoint}?api_key=${API_KEY}&language=pt-BR`;
+        let url = currentQuery 
+            ? `${BASE_URL}/search/multi?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(currentQuery)}&page=${currentPage}`
+            : `${BASE_URL}/${currentEndpoint}?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`;
 
         const res = await fetch(url);
         const data = await res.json();
         
-        if(data.results) {
-            allItems = data.results.filter(item => item.poster_path); // Apenas com imagem
-            renderGrid(allItems);
+        if(data.results && data.results.length > 0) {
+            const validItems = data.results.filter(item => item.poster_path);
+            allItems = currentPage === 1 ? validItems : [...allItems, ...validItems];
+            renderGrid(validItems, currentPage === 1);
+            currentPage++;
         }
     } catch (e) {
-        feed.innerHTML = '<p style="color:white; grid-column:1/-1; text-align:center;">Erro ao carregar dados. Verifique a sua conexão.</p>';
+        console.error("Erro ao carregar");
     }
+    isFetching = false;
     document.getElementById('loader').style.display = 'none';
 }
 
-function renderGrid(items) {
+// Renderizar o Grid Principal
+function renderGrid(items, clear = false) {
     const feed = document.getElementById('feed');
-    feed.innerHTML = '';
+    if(clear) feed.innerHTML = '';
     
-    if(items.length === 0) {
+    if(items.length === 0 && clear) {
         feed.innerHTML = '<p style="color:white; grid-column:1/-1; text-align:center;">Nenhum título encontrado.</p>';
         return;
     }
@@ -162,22 +189,37 @@ function renderGrid(items) {
     });
 }
 
+// Scroll Infinito (Observador)
+const observer = new IntersectionObserver(e => {
+    if(e[0].isIntersecting) fetchContent();
+});
+window.onload = () => {
+    observer.observe(document.getElementById('loader'));
+    fetchContent();
+};
+
+// Filtros e Pesquisa
 function setCategory(endpoint, btn) {
     document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
     btn.classList.add('active');
     currentEndpoint = endpoint;
+    currentQuery = '';
     isSavedView = false;
+    currentPage = 1;
     document.getElementById('bookmark-btn').classList.remove('active');
     document.getElementById('search-input').value = '';
     fetchContent();
 }
 
-function searchContent() {
+function startSearch() {
     const query = document.getElementById('search-input').value;
-    if(query.trim()) fetchContent(query);
+    if(query.trim()) {
+        currentQuery = query;
+        currentPage = 1;
+        fetchContent();
+    }
 }
 
-// Lógica da Minha Lista (Guardar no telemóvel)
 function toggleSavedView() {
     isSavedView = !isSavedView;
     const btn = document.getElementById('bookmark-btn');
@@ -187,15 +229,19 @@ function toggleSavedView() {
         document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
         const saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
         document.getElementById('loader').style.display = 'none';
-        renderGrid(saved);
+        renderGrid(saved, true);
     } else {
-        document.querySelector('.cat-item').classList.add('active'); // Volta ao "Em Alta"
+        document.querySelector('.cat-item').classList.add('active');
+        currentPage = 1;
+        currentQuery = '';
         fetchContent();
     }
 }
 
-// Funções do Modal
-function openModal(item) {
+// =====================================
+// NOVO: Funções do Modal e API (Trailers e Relacionados)
+// =====================================
+async function openModal(item) {
     selectedItem = item;
     const title = item.title || item.name;
     const date = item.release_date || item.first_air_date || 'N/D';
@@ -208,17 +254,72 @@ function openModal(item) {
     document.getElementById('m-desc').innerText = item.overview || "Nenhuma sinopse disponível em português para este título.";
     
     updateModalBtn();
+    
+    // Limpar trailer e relacionados antigos
+    document.getElementById('trailer-section').style.display = 'none';
+    document.getElementById('m-trailer').innerHTML = '';
+    document.getElementById('related-section').style.display = 'none';
+    document.getElementById('m-related').innerHTML = '';
+
     document.getElementById('modal').style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Bloqueia scroll do fundo
+    document.body.style.overflow = 'hidden';
+
+    // Descobrir se é Filme ou Série para chamar as APIs certas
+    let type = item.media_type;
+    if(!type) type = currentEndpoint.includes('tv') ? 'tv' : 'movie';
+
+    fetchTrailerAndRelated(type, item.id);
+}
+
+async function fetchTrailerAndRelated(type, id) {
+    try {
+        // 1. Buscar Trailer (Tenta primeiro em PT-BR, se falhar tenta original)
+        let vidRes = await fetch(`${BASE_URL}/${type}/${id}/videos?api_key=${API_KEY}&language=pt-BR`);
+        let vidData = await vidRes.json();
+        
+        if(!vidData.results || vidData.results.length === 0) {
+            vidRes = await fetch(`${BASE_URL}/${type}/${id}/videos?api_key=${API_KEY}`);
+            vidData = await vidRes.json();
+        }
+
+        const trailer = vidData.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube') || vidData.results?.[0];
+        
+        if(trailer) {
+            document.getElementById('m-trailer').innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=0" allowfullscreen></iframe>`;
+            document.getElementById('trailer-section').style.display = 'block';
+        }
+
+        // 2. Buscar Relacionados
+        const relRes = await fetch(`${BASE_URL}/${type}/${id}/recommendations?api_key=${API_KEY}&language=pt-BR&page=1`);
+        const relData = await relRes.json();
+
+        if(relData.results && relData.results.length > 0) {
+            const relContainer = document.getElementById('m-related');
+            relData.results.slice(0, 10).forEach(rel => {
+                if(rel.poster_path) {
+                    const el = document.createElement('div');
+                    el.className = 'related-card';
+                    el.innerHTML = `<img src="${IMG_URL + rel.poster_path}" alt="Relacionado">`;
+                    // Permite clicar no relacionado e abrir um novo modal
+                    el.onclick = () => { closeModal(null, true); openModal(rel); };
+                    relContainer.appendChild(el);
+                }
+            });
+            document.getElementById('related-section').style.display = 'block';
+        }
+
+    } catch(e) { console.log("Erro ao buscar extras"); }
 }
 
 function closeModal(event, force = false) {
     if (force || event.target.id === 'modal') {
         document.getElementById('modal').style.display = 'none';
         document.body.style.overflow = 'auto';
+        document.getElementById('m-trailer').innerHTML = ''; // Para de tocar o vídeo
     }
 }
 
+// Salvar
 function toggleSave() {
     let saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
     const idx = saved.findIndex(x => x.id === selectedItem.id);
@@ -228,7 +329,7 @@ function toggleSave() {
     
     localStorage.setItem('cld_flix_saved', JSON.stringify(saved));
     updateModalBtn();
-    if(isSavedView) renderGrid(saved); // Atualiza a lista por trás se estiver na aba Minha Lista
+    if(isSavedView) renderGrid(saved, true);
 }
 
 function updateModalBtn() {
@@ -244,9 +345,6 @@ function updateModalBtn() {
         btn.innerHTML = '<i class="fas fa-plus"></i> Adicionar à Minha Lista';
     }
 }
-
-// Iniciar
-window.onload = fetchContent;
 </script>
 </body>
 </html>
