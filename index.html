@@ -72,7 +72,8 @@
         .related-card { min-width: 130px; border-radius: var(--radius-md); overflow: hidden; cursor: pointer; }
         .related-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--radius-md); }
 
-        .loader { text-align: center; padding: 40px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; }
+        /* CORREÇÃO DO SCROLL: O loader agora fica invisível mas não some do HTML */
+        .loader { text-align: center; padding: 20px; color: var(--primary); font-size: 2rem; width: 100%; grid-column: 1/-1; opacity: 0; transition: opacity 0.3s; min-height: 80px; }
     </style>
 </head>
 <body>
@@ -137,11 +138,12 @@ let currentPage = 1;
 let isFetching = false;
 let currentQuery = '';
 
-// Buscar Conteúdo Geral (com Scroll Infinito)
 async function fetchContent() {
     if(isSavedView || isFetching) return;
     isFetching = true;
-    document.getElementById('loader').style.display = 'block';
+    
+    // Mostra o loader usando opacidade
+    document.getElementById('loader').style.opacity = '1';
 
     try {
         let url = currentQuery 
@@ -158,13 +160,14 @@ async function fetchContent() {
             currentPage++;
         }
     } catch (e) {
-        console.error("Erro ao carregar");
+        console.error("Erro ao carregar os filmes.");
     }
+    
     isFetching = false;
-    document.getElementById('loader').style.display = 'none';
+    // Esconde o loader mas mantém o seu espaço na página
+    document.getElementById('loader').style.opacity = '0';
 }
 
-// Renderizar o Grid Principal
 function renderGrid(items, clear = false) {
     const feed = document.getElementById('feed');
     if(clear) feed.innerHTML = '';
@@ -189,16 +192,16 @@ function renderGrid(items, clear = false) {
     });
 }
 
-// Scroll Infinito (Observador)
+// Observador para o Scroll Infinito (Corrigido)
 const observer = new IntersectionObserver(e => {
     if(e[0].isIntersecting) fetchContent();
-});
+}, { rootMargin: "100px" }); // Dispara um pouco antes de chegar ao fim real
+
 window.onload = () => {
     observer.observe(document.getElementById('loader'));
     fetchContent();
 };
 
-// Filtros e Pesquisa
 function setCategory(endpoint, btn) {
     document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
     btn.classList.add('active');
@@ -228,19 +231,17 @@ function toggleSavedView() {
     if(isSavedView) {
         document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
         const saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
-        document.getElementById('loader').style.display = 'none';
+        document.getElementById('loader').style.display = 'none'; // Na lista salva não precisa de scroll
         renderGrid(saved, true);
     } else {
         document.querySelector('.cat-item').classList.add('active');
+        document.getElementById('loader').style.display = 'block'; // Volta o loader para rolar
         currentPage = 1;
         currentQuery = '';
         fetchContent();
     }
 }
 
-// =====================================
-// NOVO: Funções do Modal e API (Trailers e Relacionados)
-// =====================================
 async function openModal(item) {
     selectedItem = item;
     const title = item.title || item.name;
@@ -255,7 +256,6 @@ async function openModal(item) {
     
     updateModalBtn();
     
-    // Limpar trailer e relacionados antigos
     document.getElementById('trailer-section').style.display = 'none';
     document.getElementById('m-trailer').innerHTML = '';
     document.getElementById('related-section').style.display = 'none';
@@ -264,16 +264,16 @@ async function openModal(item) {
     document.getElementById('modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
-    // Descobrir se é Filme ou Série para chamar as APIs certas
     let type = item.media_type;
     if(!type) type = currentEndpoint.includes('tv') ? 'tv' : 'movie';
 
     fetchTrailerAndRelated(type, item.id);
 }
 
+// CORREÇÃO: Separado o Trailer dos Relacionados
 async function fetchTrailerAndRelated(type, id) {
+    // Tenta buscar o Trailer primeiro
     try {
-        // 1. Buscar Trailer (Tenta primeiro em PT-BR, se falhar tenta original)
         let vidRes = await fetch(`${BASE_URL}/${type}/${id}/videos?api_key=${API_KEY}&language=pt-BR`);
         let vidData = await vidRes.json();
         
@@ -284,12 +284,16 @@ async function fetchTrailerAndRelated(type, id) {
 
         const trailer = vidData.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube') || vidData.results?.[0];
         
-        if(trailer) {
+        if(trailer && trailer.key) {
             document.getElementById('m-trailer').innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=0" allowfullscreen></iframe>`;
             document.getElementById('trailer-section').style.display = 'block';
         }
+    } catch(e) {
+        console.log("Trailer não encontrado, avançando...");
+    }
 
-        // 2. Buscar Relacionados
+    // Mesmo que o trailer falhe, ele tenta buscar os Relacionados
+    try {
         const relRes = await fetch(`${BASE_URL}/${type}/${id}/recommendations?api_key=${API_KEY}&language=pt-BR&page=1`);
         const relData = await relRes.json();
 
@@ -300,26 +304,25 @@ async function fetchTrailerAndRelated(type, id) {
                     const el = document.createElement('div');
                     el.className = 'related-card';
                     el.innerHTML = `<img src="${IMG_URL + rel.poster_path}" alt="Relacionado">`;
-                    // Permite clicar no relacionado e abrir um novo modal
                     el.onclick = () => { closeModal(null, true); openModal(rel); };
                     relContainer.appendChild(el);
                 }
             });
             document.getElementById('related-section').style.display = 'block';
         }
-
-    } catch(e) { console.log("Erro ao buscar extras"); }
+    } catch(e) {
+        console.log("Filmes relacionados não encontrados.");
+    }
 }
 
 function closeModal(event, force = false) {
     if (force || event.target.id === 'modal') {
         document.getElementById('modal').style.display = 'none';
         document.body.style.overflow = 'auto';
-        document.getElementById('m-trailer').innerHTML = ''; // Para de tocar o vídeo
+        document.getElementById('m-trailer').innerHTML = ''; // Para o áudio do YouTube ao fechar
     }
 }
 
-// Salvar
 function toggleSave() {
     let saved = JSON.parse(localStorage.getItem('cld_flix_saved') || '[]');
     const idx = saved.findIndex(x => x.id === selectedItem.id);
