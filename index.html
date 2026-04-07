@@ -135,12 +135,11 @@
     </div>
 
     <script>
-        // NOVO LINK DO INSTAGRAM
         const JSON_FEED_URL = 'https://rss.app/feeds/v1.1/hvnHYPjoFaiB5sgG.json';
         
         let allItems = [];
         let displayedItems = 0;
-        const ITEMS_PER_PAGE = 6;
+        const ITEMS_PER_PAGE = 12; // Aumentei para 12 para encher logo a página!
         let selectedItem = null;
         let isSavedView = false;
         let currentIndex = 0;
@@ -190,7 +189,6 @@
             if(!isBackground) document.getElementById('loader').style.opacity = '1';
 
             try {
-                // Fura-cache no milissegundo para garantir a última atualização
                 const urlLimpa = `${JSON_FEED_URL}?t=${new Date().getTime()}`;
                 let data = null;
 
@@ -211,8 +209,8 @@
                     throw new Error("Erro de dados.");
                 }
                 
-                // NOME NOVO DE MEMÓRIA PARA O INSTAGRAM: Evita confusão com o Facebook antigo
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_ig_final') || '[]');
+                // Mudei o nome da memória para limpar qualquer erro antigo
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_ig_desbloqueado') || '[]');
                 let novosEncontrados = false;
                 
                 data.items.forEach(newItem => {
@@ -228,7 +226,12 @@
                         if (imgMatch) imagemCapa = imgMatch[1];
                     }
                     
-                    if (!imagemCapa) imagemCapa = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                    // DESBLOQUEADOR DE IMAGENS: Quebra a proteção do Instagram!
+                    if (imagemCapa && imagemCapa.startsWith('http')) {
+                        imagemCapa = `https://wsrv.nl/?url=${encodeURIComponent(imagemCapa)}`;
+                    } else {
+                        imagemCapa = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500';
+                    }
 
                     if (linkReal && !cachedData.some(oldItem => oldItem.guid === idReal || oldItem.link === linkReal)) {
                         cachedData.push({
@@ -243,13 +246,13 @@
                 });
                 
                 cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                localStorage.setItem('historias_cache_ig_final', JSON.stringify(cachedData));
+                localStorage.setItem('historias_cache_ig_desbloqueado', JSON.stringify(cachedData));
                 
                 allItems = cachedData;
 
                 if(!isBackground) {
                     if(allItems.length > 0) {
-                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
+                        document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos detetados`;
                         displayedItems = 0;
                         document.getElementById('feed').innerHTML = '';
                         loadMoreItems(); 
@@ -258,7 +261,7 @@
                     }
                     document.getElementById('loader').style.opacity = '0';
                 } else if(novosEncontrados && !isSavedView && displayedItems > 0) {
-                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos guardados`;
+                    document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos detetados`;
                     const feed = document.getElementById('feed');
                     feed.innerHTML = '';
                     let itemsAnteriores = displayedItems;
@@ -270,7 +273,7 @@
 
             } catch (e) { 
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_ig_final') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_ig_desbloqueado') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos na memória`;
                         displayedItems = 0;
@@ -328,7 +331,6 @@
             }
         }
 
-        // Atualiza os minutos das etiquetas na tela a cada 1 minuto
         setInterval(() => {
             if(!isSavedView && displayedItems > 0) {
                 const feed = document.getElementById('feed');
@@ -340,9 +342,6 @@
             }
         }, 60000);
 
-        // ========================================================
-        // RADAR DE TEMPO REAL: Busca vídeos novos a cada 60 SEGUNDOS!
-        // ========================================================
         setInterval(() => { fetchContent(true); }, 60000); 
 
         function openModal(item) {
@@ -363,7 +362,6 @@
             
             btnFallback.href = linkVideo;
 
-            // LEITOR ESPECÍFICO PARA INSTAGRAM
             if (linkVideo.includes('instagram.com')) {
                 let urlLimpa = linkVideo.split('?')[0];
                 if (!urlLimpa.endsWith('/')) { urlLimpa += '/'; }
@@ -478,13 +476,7 @@
         }
 
         window.onload = () => { 
-            // Limpa memórias anteriores para evitar o ecrã branco e crashes!
-            localStorage.removeItem('historias_cache_fb_oficial');
-            localStorage.removeItem('historias_cache_novelas');
-            localStorage.removeItem('historias_cache_novelas_v2');
-            localStorage.removeItem('historias_cache_novelas_v3');
-            localStorage.removeItem('historias_cache_novelas_v4');
-            
+            localStorage.removeItem('historias_cache_ig_final'); // Limpa a memória bloqueada
             observer.observe(document.getElementById('loader'));
             fetchContent(); 
         };
