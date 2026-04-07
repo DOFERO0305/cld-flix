@@ -34,7 +34,7 @@
         .refresh-btn { background: none; border: none; color: var(--primary); font-size: 1.2rem; cursor: pointer; transition: 0.2s; padding: 5px; margin-left: 10px; }
         .refresh-btn:active { transform: rotate(180deg) scale(0.8); }
 
-        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; padding-bottom: 100px; } /* Espaço para botões de baixo */
+        .feed { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; padding-bottom: 100px; } 
         @media(max-width: 500px) { .feed { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
         
         .movie-card { background: var(--surface); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; aspect-ratio: 2/3; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -117,7 +117,7 @@
             z-index: 900;
             backdrop-filter: blur(8px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            pointer-events: none; /* Para não bloquear cliques por baixo */
+            pointer-events: none;
         }
         .dev-signature p { margin: 0; line-height: 1.5; }
         .dev-signature strong { color: #fff; font-size: 0.85rem; }
@@ -176,7 +176,7 @@
             <div class="modal-info">
                 
                 <div class="trailer-container" id="m-trailer"></div>
-                
+
                 <h2 id="m-title" class="modal-title">Título</h2>
                 <div class="modal-time-detail" id="m-time"><i class="far fa-clock"></i> Publicado há pouco</div>
                 
@@ -268,7 +268,7 @@
                     throw new Error("Erro de dados.");
                 }
                 
-                let cachedData = JSON.parse(localStorage.getItem('historias_cache_final_v5') || '[]');
+                let cachedData = JSON.parse(localStorage.getItem('historias_cache_final_v6') || '[]');
                 let novosEncontrados = false;
                 
                 data.items.forEach(newItem => {
@@ -304,7 +304,7 @@
                 });
                 
                 cachedData.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                localStorage.setItem('historias_cache_final_v5', JSON.stringify(cachedData));
+                localStorage.setItem('historias_cache_final_v6', JSON.stringify(cachedData));
                 
                 allItems = cachedData;
 
@@ -344,7 +344,7 @@
 
             } catch (e) { 
                 if(!isBackground) {
-                    allItems = JSON.parse(localStorage.getItem('historias_cache_final_v5') || '[]');
+                    allItems = JSON.parse(localStorage.getItem('historias_cache_final_v6') || '[]');
                     if(allItems.length > 0) {
                         document.getElementById('feed-count-label').innerText = `${allItems.length} vídeos na memória`;
                         displayedItems = 0;
@@ -371,14 +371,10 @@
             const card = document.createElement('div');
             card.className = 'movie-card';
             
-            // Tratamento contra erros ao clicar
-            card.addEventListener('click', function() {
-                try {
-                    openModal(item);
-                } catch(err) {
-                    console.error("Erro ao abrir janela", err);
-                }
-            });
+            // Tratamento de clique limpo e seguro
+            card.onclick = function() {
+                openModal(item);
+            };
             
             const imgUrl = item.thumbnail;
             const tempoStr = calcularTempoPassado(item.pubDate);
@@ -438,7 +434,7 @@
             let linkVideo = item.link;
             let embedHtml = "";
             
-            // O código agora constrói o leitor mas esconde as bordas extra (hidecaption=true)
+            // Constrói o leitor (Sem o código antigo do botão "m-fallback-btn" que causava o erro!)
             if (linkVideo.includes('instagram.com')) {
                 let urlLimpa = linkVideo.split('?')[0];
                 if (!urlLimpa.endsWith('/')) { urlLimpa += '/'; }
@@ -554,7 +550,7 @@
         }
 
         window.onload = () => { 
-            localStorage.removeItem('historias_cache_ig_desbloqueado'); // Prevenção de bugs antigos
+            localStorage.removeItem('historias_cache_final_v5'); // Limpeza do erro anterior
             observer.observe(document.getElementById('loader'));
             fetchContent(); 
         };
